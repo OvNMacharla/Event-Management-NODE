@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import axios from 'axios';
+import AuthContext from '../context/auth-context';
 
 function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);
     const [error, setError] = useState('');
+    const { login, token } = useContext(AuthContext)
 
     const handleSignIn = async (e) => {
         e.preventDefault();
@@ -43,7 +45,9 @@ function AuthPage() {
 
             if (isLogin) {
                 // Handle successful login
-                console.log('Login successful:', response.data);
+                const { token, userId } = response.data.data.login;
+                login(token, userId);
+                console.log('Login successful:', response.data, token);
                 // Store token or handle redirection here
             } else {
                 // Handle successful user creation
