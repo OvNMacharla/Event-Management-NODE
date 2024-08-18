@@ -9,8 +9,6 @@ const graphQLResolver = require('./graphql/resolvers/index')
 const app = express()
 app.use(bodyParser.json())
 
-
-
 app.use('/graphql', graphqlHTTP({
     schema: graphQLSchema,
     rootValue: graphQLResolver,

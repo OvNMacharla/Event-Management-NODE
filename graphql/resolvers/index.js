@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 
 const Event = require('../../models/event');
 const User = require('../../models/user');
+const Booking = require('../../models/booking')
 
 const events = async eventIds => {
     try {
@@ -27,6 +28,17 @@ const user = async userId => {
     }
 }
 
+const singleEvent = async eventId => {
+    try {
+        const event = await Event.findById(eventId);
+        console.log(event)
+        return { ...event._doc, _id: event.id, creator: user.bind(this, event.creator) }
+    }
+    catch (err) {
+        throw err
+    }
+}
+
 module.exports = {
     events: async () => {
         try {
@@ -44,19 +56,37 @@ module.exports = {
             throw err;
         }
     },
+    bookings: async () => {
+        try {
+            const bookings = await Booking.find();
+            return bookings.map(booking => {
+                return {
+                    ...booking,
+                    _id: booking.id,
+                    user: user.bind(this, booking.user),
+                    event: singleEvent.bind(this, booking.event),
+                    createdAt: new Date(booking.createdAt).toISOString(),
+                    updatedAt: new Date(booking.updatedAt).toISOString()
+                }
+            })
+        }
+        catch (err) {
+            throw err
+        }
+    },
     createEvent: async (args) => {
         const event = new Event({
             title: args.eventInput.title,
             description: args.eventInput.description,
             price: +args.eventInput.price,
             date: new Date(args.eventInput.date),
-            creator: '66c1f4dea1954ad836a54d3d'
+            creator: '66c20638a0795731176d13a4'
         })
         let createdEvent;
         try {
             const res = await event.save()
             createdEvent = { ...res._doc, date: new Date(event.date).toISOString(), _id: res.id, creator: user.bind(this, res._doc.creator) }
-            const isuser = await User.findById('66c1f4dea1954ad836a54d3d');
+            const isuser = await User.findById('66c20638a0795731176d13a4');
 
             if (!isuser) {
                 throw new Error('User not found')
@@ -83,10 +113,43 @@ module.exports = {
                 password: hashedPassword
             })
             const res = await user.save();
-            return { ...res._doc, password: null, _id: res.id }
+            return res
         }
         catch (err) {
             throw err;
+        }
+    },
+    bookEvent: async (args) => {
+        try {
+            const fetchEvent = await Event.findOne({ _id: args.eventId })
+            const booking = new Booking({
+                user: '66c20638a0795731176d13a4',
+                event: fetchEvent
+            })
+            const res = await booking.save();
+            return {
+                ...res._doc,
+                user: user.bind(this, booking.user),
+                event: singleEvent.bind(this, booking.event),
+                _id: res.id, createdAt: res.createdAt, updatedAt: res.updateAt
+            };
+        }
+        catch (err) {
+            throw err
+        }
+    },
+    cancelBooking: async (args) => {
+        try {
+            const booking = await Booking.findById(args.bookingId).populate('event')
+            const event = {
+                ...booking.event._doc, _id: booking.event.id,
+                creator: user.bind(this, booking.event._doc.creator)
+            }
+            await Booking.deleteOne({ _id: args.bookingId })
+            return event;
+        }
+        catch (err) {
+            throw err
         }
     }
 }
