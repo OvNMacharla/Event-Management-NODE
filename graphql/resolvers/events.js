@@ -4,7 +4,10 @@ const Booking = require('../../models/booking');
 const { returnUser, returnUserEvent } = require('../resolvers/common');
 
 module.exports = {
-    events: async () => {
+    events: async (args, req) => {
+        if (!req.isAuth) {
+            throw new Error('Unauthenticated');
+        }
         try {
             const events = await Event.find()
             return events.map(event => {
@@ -15,19 +18,22 @@ module.exports = {
             throw err;
         }
     },
-    createEvent: async (args) => {
+    createEvent: async (args, req) => {
+        if (!req.isAuth) {
+            throw new Error('Unauthenticated');
+        }
         const event = new Event({
             title: args.eventInput.title,
             description: args.eventInput.description,
             price: +args.eventInput.price,
             date: new Date(args.eventInput.date),
-            creator: '66c20638a0795731176d13a4'
+            creator: req.userId
         })
         let createdEvent;
         try {
             const result = await event.save();
             createdEvent = returnUser(result);
-            const isuser = await User.findById('66c20638a0795731176d13a4');
+            const isuser = await User.findById(req.userId);
 
             if (!isuser) {
                 throw new Error('User not found')
@@ -42,11 +48,14 @@ module.exports = {
             throw err;
         };
     },
-    bookEvent: async (args) => {
+    bookEvent: async (args, req) => {
+        if (!req.isAuth) {
+            throw new Error('Unauthenticated');
+        }
         try {
             const fetchEvent = await Event.findOne({ _id: args.eventId })
             const booking = new Booking({
-                user: '66c20638a0795731176d13a4',
+                user: req.userId,
                 event: fetchEvent
             })
             const res = await booking.save();
