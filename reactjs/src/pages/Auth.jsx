@@ -1,68 +1,44 @@
-import React, { useContext, useState } from 'react';
-import axios from 'axios';
-import AuthContext from '../context/auth-context';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useLazyQuery, useMutation } from '@apollo/client';
+import { LOGIN } from '../QueryMutation/graphql-query';
+import { CREATE } from '../QueryMutation/graphql-mutation';
 
 function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLogin, setIsLogin] = useState(true);
     const [error, setError] = useState('');
-    const { login, token } = useContext(AuthContext)
+    const navigate = useNavigate();
+    const [login] = useLazyQuery(LOGIN);
+    const [create] = useMutation(CREATE);
 
     const handleSignIn = async (e) => {
         e.preventDefault();
+
         if (email.trim().length === 0 || password.trim().length === 0) {
             setError('Please fill in both fields.');
             return;
         }
-
-        const reqBody = {
-            query: `
-            mutation {
-                createUser(userInput: { email: "${email}", password: "${password}" }) {
-                    _id
-                    email
-                }
-            }`
-        };
-
-        const userReqBody = {
-            query: `
-            query {
-                login(email: "${email}", password: "${password}") {
-                    userId
-                    token
-                }
-            }`
-        };
-
         try {
-            const response = await axios.post('http://localhost:8000/graphql', JSON.stringify(isLogin ? userReqBody : reqBody), {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
             if (isLogin) {
-                // Handle successful login
-                const { token, userId } = response.data.data.login;
-                login(token, userId);
-                console.log('Login successful:', response.data, token);
-                // Store token or handle redirection here
-            } else {
-                // Handle successful user creation
-                console.log('User created:', response.data);
-                // Handle post user creation (e.g., redirect, show message, etc.)
+                const { data } = await login({ variables: { email, password } });
+                console.log(data, "APOLLo")
+                const { token, userId } = data.login;
+                localStorage.setItem('authToken', token)
+                localStorage.setItem('userId', userId)
+                navigate('/events');
             }
-
-            // Clear any existing error
+            else {
+                const { data } = await create({ variables: { email, password } });
+                console.log('User created:', data);
+            }
             setError('');
-
         } catch (error) {
             if (error.response) {
                 const message = error.response.data.errors[0]?.message || 'An error occurred.';
                 if (message.includes('User not found') || message.includes('Password incorrect')) {
-                    setIsLogin(false); // Switch to create user mode
+                    setIsLogin(false);
                     setError(message + ' Switching to user creation.');
                 } else {
                     setError(message);
@@ -74,60 +50,48 @@ function AuthPage() {
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            <form style={{ width: '300px', textAlign: 'center' }}>
-                <h2>{isLogin ? 'Login' : 'Create Account'}</h2>
-                <div style={{ marginBottom: '10px' }}>
+        <div className="flex justify-center items-center h-screen">
+            <form className="w-72 text-center">
+                <h2 className="text-2xl font-semibold mb-4">{isLogin ? 'Login' : 'Create Account'}</h2>
+                <div className="mb-2">
                     <input
                         type="email"
                         placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+                        className="w-full p-2 mb-2 border border-gray-300 rounded"
                     />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
+                <div className="mb-5">
                     <input
                         type="password"
                         placeholder="Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        style={{ width: '100%', padding: '10px' }}
+                        className="w-full p-2 mb-2 border border-gray-300 rounded"
                     />
                 </div>
                 {error && (
-                    <div style={{ color: 'red', marginBottom: '10px' }}>
+                    <div className="text-red-500 mb-2">
                         {error}
                     </div>
                 )}
                 <button
                     onClick={handleSignIn}
-                    style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        marginBottom: '10px',
-                    }}
+                    className="w-full p-2 mb-2 bg-green-500 text-white rounded hover:bg-green-600"
                 >
                     {isLogin ? 'Login' : 'Create User'}
                 </button>
                 <button
                     type="button"
                     onClick={() => setIsLogin(!isLogin)}
-                    style={{
-                        width: '100%',
-                        padding: '10px',
-                        backgroundColor: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                    }}
+                    className="w-full p-2 bg-red-500 text-white rounded hover:bg-red-600"
                 >
                     Switch to {isLogin ? 'Create Account' : 'Login'}
                 </button>
             </form>
         </div>
+
     );
 }
 

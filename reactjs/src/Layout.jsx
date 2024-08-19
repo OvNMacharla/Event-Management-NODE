@@ -5,9 +5,7 @@ import { Outlet } from "react-router-dom";
 const Layout = () => {
     return (
         <div>
-            <span className="md:hidden block">
-                <Header />
-            </span>
+            <Header />
 
             <Outlet />
         </div>

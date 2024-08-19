@@ -1,22 +1,44 @@
-import React, { useContext } from "react";
-import { Link } from 'react-router-dom';
-import AuthContext from "../context/auth-context";
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Header = () => {
-    const { token } = useContext(AuthContext);
+    const token = localStorage.getItem('authToken');
+    const navigate = useNavigate();
+    const logoutButton = () => {
+        localStorage.setItem('authToken', '');
+        navigate('/')
+    }
+
     return (
-        <div className="w-fit font-semibold bg-nav-background rounded-tr-lg rounded-bl-2xl pt-3 pb-3 pl-9 pr-9 md:flex hidden gap-9">
-            {!token && <Link to="/" className="hover:underline">
-                Auth
-            </Link>}
-            <Link to="/events" className="hover:underline">
-                Events
-            </Link>
-            <Link to="/bookings" className="hover:underline">
-                Bookings
-            </Link>
-        </div>
-    )
-}
+        <header className="">
+            <div className="mx-auto flex justify-between items-center">
+                <nav className="flex space-x-8">
+                    {!token && (
+                        <Link to="/" className="hover:underline">
+                            Auth
+                        </Link>
+                    )}
+                    <Link to="/events" className=" hover:underline">
+                        Events
+                    </Link>
+                    <Link to="/bookings" className=" hover:underline">
+                        Bookings
+                    </Link>
+                    {token && (
+                        <button
+                            onClick={logoutButton}
+                            className=" hover:underline focus:outline-none"
+                        >
+                            Logout
+                        </button>
+                    )}
+                </nav>
+                <div className=" font-bold text-lg ml-auto">
+                    MyApp
+                </div>
+            </div>
+        </header >
+    );
+};
 
 export default Header;
